@@ -10,7 +10,7 @@ interface StudyResultsProps {
 
 export function StudyResults({ session, onNewSession, onReview }: StudyResultsProps) {
   const accuracy = session.totalWords > 0 
-    ? Math.round((session.correctCount / session.totalWords) * 100)
+    ? Math.round(((session.correctCount || 0) / session.totalWords) * 100)
     : 0;
 
   return (
@@ -36,13 +36,13 @@ export function StudyResults({ session, onNewSession, onReview }: StudyResultsPr
             </div>
             <div className="bg-success/10 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-success" data-testid="text-correct-words">
-                {session.correctCount}
+                {session.correctCount || 0}
               </div>
               <div className="text-xs text-muted-foreground">正解</div>
             </div>
             <div className="bg-warning/10 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-warning" data-testid="text-incorrect-words">
-                {session.incorrectCount}
+                {session.incorrectCount || 0}
               </div>
               <div className="text-xs text-muted-foreground">復習必要</div>
             </div>
@@ -69,14 +69,14 @@ export function StudyResults({ session, onNewSession, onReview }: StudyResultsPr
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-            {session.incorrectCount > 0 && (
+            {(session.incorrectCount || 0) > 0 && (
               <Button
                 variant="destructive"
                 onClick={onReview}
                 data-testid="button-review"
               >
                 <i className="fas fa-redo mr-2"></i>
-                復習する ({session.incorrectCount}問)
+                復習する ({session.incorrectCount || 0}問)
               </Button>
             )}
             <Button

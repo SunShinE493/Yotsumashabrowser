@@ -48,6 +48,9 @@ export class MemStorage implements IStorage {
     const word: VocabularyWord = {
       ...insertWord,
       id,
+      category: insertWord.category || null,
+      example: insertWord.example || null,
+      difficulty: insertWord.difficulty || null,
       createdAt: new Date(),
     };
     this.vocabularyWords.set(id, word);
@@ -100,6 +103,8 @@ export class MemStorage implements IStorage {
     const progress: WordProgress = {
       ...insertProgress,
       id,
+      wordId: insertProgress.wordId || null,
+      sessionId: insertProgress.sessionId || null,
       attempts: insertProgress.attempts || 1,
       lastStudied: new Date(),
     };

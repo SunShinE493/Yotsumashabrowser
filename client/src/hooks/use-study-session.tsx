@@ -9,10 +9,11 @@ export function useStudySession(session: StudySession) {
   const [studyWords, setStudyWords] = useState<VocabularyWord[]>([]);
 
   const { data: vocabularyWords = [] } = useQuery<VocabularyWord[]>({
-    queryKey: ["/api/vocabulary/range", session.startRange, session.endRange],
+    queryKey: [`/api/vocabulary/range/${session.startRange}/${session.endRange}`],
   });
 
   useEffect(() => {
+    console.log('Vocabulary words loaded:', vocabularyWords.length);
     if (vocabularyWords.length > 0) {
       let words = [...vocabularyWords];
       
@@ -22,12 +23,20 @@ export function useStudySession(session: StudySession) {
         words = words.slice(0, session.totalWords);
       }
       
+      console.log('Study words set:', words.length);
       setStudyWords(words);
     }
   }, [vocabularyWords, session]);
 
   const currentWord = studyWords[currentWordIndex] || null;
-  const isComplete = currentWordIndex >= studyWords.length;
+  const isComplete = studyWords.length > 0 && currentWordIndex >= studyWords.length;
+  
+  console.log('Current state:', {
+    currentWordIndex,
+    studyWordsLength: studyWords.length,
+    isComplete,
+    currentWord: currentWord?.word
+  });
 
   const nextWord = () => {
     setCurrentWordIndex(prev => prev + 1);

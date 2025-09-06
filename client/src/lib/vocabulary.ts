@@ -24,7 +24,7 @@ export function validateVocabularyFile(data: any): VocabularyWord[] {
       word: String(item.word).trim(),
       meaning: String(item.meaning).trim(),
       category: item.category ? String(item.category).trim() : "未分類",
-      example: item.example ? String(item.example).trim() : undefined,
+      example: item.example ? String(item.example).trim() : null,
       difficulty: item.difficulty ? Number(item.difficulty) : 1,
       createdAt: new Date(),
     };
