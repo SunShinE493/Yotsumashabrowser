@@ -77,6 +77,40 @@ export default function Home() {
     }
   };
 
+  const handleQuickStart = async () => {
+    if (vocabularyWords.length === 0) {
+      // 単語がない場合は何もしない
+      return;
+    }
+
+    try {
+      // デフォルト設定で学習セッションを作成
+      const endRange = Math.min(20, vocabularyWords.length);
+      const config = {
+        startRange: 1,
+        endRange,
+        questionCount: endRange,
+        order: "random" as const,
+        reviewOnly: false,
+      };
+
+      const response = await fetch("/api/study/session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(config),
+      });
+
+      if (response.ok) {
+        const session = await response.json();
+        handleStartSession(session);
+      }
+    } catch (error) {
+      console.error('Failed to start quick session:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -151,13 +185,15 @@ export default function Home() {
       </main>
 
       {/* Floating Action Button */}
-      {!currentSession && (
+      {!currentSession && vocabularyWords.length > 0 && (
         <div className="fixed bottom-6 right-6">
           <button 
-            className="w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all hover:scale-105 flex items-center justify-center"
-            data-testid="button-add"
+            onClick={handleQuickStart}
+            className="w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all hover:scale-105 flex items-center justify-center group"
+            data-testid="button-quick-start"
+            title="クイック学習開始（最初の20語をランダムで学習）"
           >
-            <i className="fas fa-plus text-xl"></i>
+            <i className="fas fa-play text-xl group-hover:scale-110 transition-transform"></i>
           </button>
         </div>
       )}
