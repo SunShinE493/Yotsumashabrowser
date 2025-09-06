@@ -108,6 +108,42 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
     setIsFlipped(false);
   };
 
+  const handleEarlyFinish = () => {
+    if (!hasCompleted) {
+      setHasCompleted(true);
+      const isReviewSession = session.id.startsWith('review-');
+      
+      // 途中終了時のセッションデータを作成
+      const completedSessionData = {
+        ...session,
+        correctCount,
+        incorrectCount,
+        totalWords: currentWordIndex, // 実際に答えた問題数を設定
+        isCompleted: true
+      };
+      
+      if (isReviewSession) {
+        queryClient.invalidateQueries({ queryKey: ["/api/vocabulary/review"] });
+        onComplete(completedSessionData);
+      } else {
+        updateSessionMutation.mutate({
+          correctCount,
+          incorrectCount,
+          totalWords: currentWordIndex, // 実際の問題数で更新
+          isCompleted: true,
+        }, {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["/api/vocabulary/review"] });
+            onComplete();
+          },
+          onError: () => {
+            onComplete(completedSessionData);
+          }
+        });
+      }
+    }
+  };
+
   if (!currentWord) {
     return (
       <Card>
@@ -203,8 +239,8 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
             </Button>
           </div>
 
-          {/* Skip Button */}
-          <div className="mt-4 text-center">
+          {/* Skip and Early Finish Buttons */}
+          <div className="mt-4 flex flex-col items-center space-y-2">
             <Button
               variant="ghost"
               size="sm"
@@ -213,6 +249,17 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
             >
               <i className="fas fa-forward mr-1"></i>
               スキップ
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEarlyFinish}
+              className="text-muted-foreground border-muted-foreground/50 hover:bg-muted hover:text-foreground"
+              data-testid="button-early-finish"
+            >
+              <i className="fas fa-stop mr-1"></i>
+              途中終了
             </Button>
           </div>
 
