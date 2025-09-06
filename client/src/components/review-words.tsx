@@ -5,9 +5,10 @@ import type { WordProgress, VocabularyWord } from "@shared/schema";
 
 interface ReviewWordsProps {
   reviewWords: (WordProgress & { word: VocabularyWord })[];
+  onStartReview?: () => void;
 }
 
-export function ReviewWords({ reviewWords }: ReviewWordsProps) {
+export function ReviewWords({ reviewWords, onStartReview }: ReviewWordsProps) {
   if (reviewWords.length === 0) {
     return (
       <Card>
@@ -43,6 +44,7 @@ export function ReviewWords({ reviewWords }: ReviewWordsProps) {
             <Button
               variant="destructive"
               size="sm"
+              onClick={onStartReview}
               data-testid="button-start-review"
             >
               <i className="fas fa-study mr-1"></i>

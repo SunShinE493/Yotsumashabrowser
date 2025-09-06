@@ -10,7 +10,7 @@ import type { StudySession as StudySessionType, VocabularyWord } from "@shared/s
 
 interface StudySessionProps {
   session: StudySessionType;
-  onComplete: () => void;
+  onComplete: (sessionId: string) => void;
   onBack: () => void;
 }
 
@@ -55,9 +55,12 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
         correctCount,
         incorrectCount,
         isCompleted: true,
+      }, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["/api/vocabulary/review"] });
+          onComplete(session.id);
+        }
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/vocabulary/review"] });
-      onComplete();
     }
   }, [isComplete, correctCount, incorrectCount]);
 

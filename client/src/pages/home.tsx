@@ -10,6 +10,7 @@ import type { VocabularyWord, StudySession as StudySessionType } from "@shared/s
 export default function Home() {
   const [currentSession, setCurrentSession] = useState<StudySessionType | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [completedSession, setCompletedSession] = useState<StudySessionType | null>(null);
 
   const { data: vocabularyWords = [], refetch: refetchVocabulary } = useQuery<VocabularyWord[]>({
     queryKey: ["/api/vocabulary"],
@@ -28,13 +29,41 @@ export default function Home() {
     setShowResults(false);
   };
 
-  const handleSessionComplete = () => {
-    setShowResults(true);
+  const handleSessionComplete = async (sessionId: string) => {
+    try {
+      // セッション完了後に最新のセッションデータを取得
+      const response = await fetch(`/api/study/session/${sessionId}`);
+      const updatedSession = await response.json();
+      setCompletedSession(updatedSession);
+      setShowResults(true);
+    } catch (error) {
+      console.error('Failed to fetch completed session:', error);
+      setShowResults(true);
+    }
   };
 
   const handleNewSession = () => {
     setCurrentSession(null);
+    setCompletedSession(null);
     setShowResults(false);
+  };
+
+  const handleStartReview = () => {
+    if (reviewWords.length > 0) {
+      // 復習セッションを作成
+      const reviewSession: StudySessionType = {
+        id: `review-${Date.now()}`,
+        startRange: 1,
+        endRange: reviewWords.length,
+        totalWords: reviewWords.length,
+        correctCount: 0,
+        incorrectCount: 0,
+        isCompleted: false,
+        createdAt: new Date(),
+      };
+      setCurrentSession(reviewSession);
+      setShowResults(false);
+    }
   };
 
   return (
@@ -83,13 +112,11 @@ export default function Home() {
         )}
 
         {/* Show results if session completed */}
-        {currentSession && showResults && (
+        {showResults && (completedSession || currentSession) && (
           <StudyResults
-            session={currentSession}
+            session={completedSession || currentSession!}
             onNewSession={handleNewSession}
-            onReview={() => {
-              // TODO: Start review session
-            }}
+            onReview={handleStartReview}
           />
         )}
 
@@ -103,7 +130,10 @@ export default function Home() {
               onStartSession={handleStartSession}
             />
 
-            <ReviewWords reviewWords={reviewWords} />
+            <ReviewWords 
+              reviewWords={reviewWords} 
+              onStartReview={handleStartReview}
+            />
           </>
         )}
 
