@@ -1,13 +1,18 @@
 import { useState } from "react";
-import { FileUpload } from "@/components/file-upload";
+import { FileUpload, SelectedJsonInfo } from "@/components/file-upload";
 import { RangeSelector } from "@/components/range-selector";
 import { StudySession } from "@/components/study-session";
 import { StudyResults } from "@/components/study-results";
 import { ReviewWords } from "@/components/review-words";
 import { useQuery } from "@tanstack/react-query";
 import type { VocabularyWord, StudySession as StudySessionType } from "@shared/schema";
+import iconSvg from './1f974.svg';
+
 
 export default function Home() {
+  // 🔽 新しい状態変数 selectedJson を追加
+  const [selectedJson, setSelectedJson] = useState<SelectedJsonInfo | null>(null);
+
   const [currentSession, setCurrentSession] = useState<StudySessionType | null>(null);
   const [showResults, setShowResults] = useState(false);
   const [completedSession, setCompletedSession] = useState<StudySessionType | null>(null);
@@ -20,7 +25,10 @@ export default function Home() {
     queryKey: ["/api/vocabulary/review"],
   });
 
-  const handleUploadSuccess = () => {
+  // 🔽 onUploadSuccess ハンドラを修正
+  const handleUploadSuccess = (fileInfo: SelectedJsonInfo) => {
+    // FileUploadから受け取った情報を selectedJson の状態にセットする
+    setSelectedJson(fileInfo);
     refetchVocabulary();
   };
 
@@ -32,11 +40,9 @@ export default function Home() {
   const handleSessionComplete = async (sessionData?: StudySessionType) => {
     try {
       if (sessionData) {
-        // セッションデータが直接渡された場合（復習セッションなど）
         setCompletedSession(sessionData);
         setShowResults(true);
       } else if (currentSession) {
-        // 通常セッションの場合、サーバーから最新データを取得
         const response = await fetch(`/api/study/session/${currentSession.id}`);
         if (response.ok) {
           const updatedSession = await response.json();
@@ -61,7 +67,6 @@ export default function Home() {
 
   const handleStartReview = () => {
     if (reviewWords.length > 0) {
-      // 復習セッションを作成
       const reviewSession: StudySessionType = {
         id: `review-${Date.now()}`,
         startRange: 1,
@@ -79,12 +84,10 @@ export default function Home() {
 
   const handleQuickStart = async () => {
     if (vocabularyWords.length === 0) {
-      // 単語がない場合は何もしない
       return;
     }
 
     try {
-      // デフォルト設定で学習セッションを作成
       const endRange = Math.min(20, vocabularyWords.length);
       const config = {
         startRange: 1,
@@ -118,11 +121,15 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <i className="fas fa-book text-primary-foreground"></i>
+                <div className="w-10 h-10  rounded-full flex items-center justify-center">
+                  <img 
+                    src={iconSvg} 
+                    alt="App Logo"
+                    className="w-full h-full object-cover rounded-full"
+                  />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-foreground">単語暗記アプリ</h1>
+                <h1 className="text-xl font-semibold text-foreground">よつましゃアプリブラウザ版</h1>
                 <p className="text-sm text-muted-foreground">Vocabulary Learning</p>
               </div>
             </div>
@@ -146,7 +153,7 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        
+
         {/* Show study session if active */}
         {currentSession && !showResults && (
           <StudySession 
@@ -169,8 +176,10 @@ export default function Home() {
         {!currentSession && (
           <>
             <FileUpload onUploadSuccess={handleUploadSuccess} />
-            
+
             <RangeSelector 
+              // 🔽 修正: selectedJson を渡す
+              selectedJson={selectedJson}
               totalWords={vocabularyWords.length}
               onStartSession={handleStartSession}
             />
@@ -189,11 +198,12 @@ export default function Home() {
         <div className="fixed bottom-6 right-6">
           <button 
             onClick={handleQuickStart}
-            className="w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all hover:scale-105 flex items-center justify-center group"
+            className="w-14 h-14 bg-500 text-black rounded-full shadow-lg hover:bg-primary/90 transition-all hover:scale-105 flex items-center justify-center group"
             data-testid="button-quick-start"
             title="クイック学習開始（最初の20語をランダムで学習）"
           >
             <i className="fas fa-play text-xl group-hover:scale-110 transition-transform"></i>
+            <span className="font-mono">Quick<br/>Start</span>
           </button>
         </div>
       )}

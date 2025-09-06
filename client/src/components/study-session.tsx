@@ -15,7 +15,8 @@ interface StudySessionProps {
 }
 
 export function StudySession({ session, onComplete, onBack }: StudySessionProps) {
-  const [isFlipped, setIsFlipped] = useState(false);
+  // isFlipped の代わりに rotationCount を使用
+  const [rotationCount, setRotationCount] = useState(0); 
   const [hasCompleted, setHasCompleted] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -54,7 +55,7 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
     if (isComplete && !hasCompleted) {
       setHasCompleted(true);
       const isReviewSession = session.id.startsWith('review-');
-      
+
       // 完了時のセッションデータを作成
       const completedSessionData = {
         ...session,
@@ -62,7 +63,7 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
         incorrectCount,
         isCompleted: true
       };
-      
+
       if (isReviewSession) {
         // 復習セッションの場合、サーバー更新をスキップして直接完了処理
         queryClient.invalidateQueries({ queryKey: ["/api/vocabulary/review"] });
@@ -87,32 +88,39 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
     }
   }, [isComplete, hasCompleted]);
 
+  // カードをタップしたときに、回転数を1増やす
   const handleFlip = () => {
-    setIsFlipped(!isFlipped);
+    setRotationCount(prevCount => prevCount + 1);
   };
 
+  // 覚えた/覚えてないボタンを押したときに、回転数を1増やし、0.3秒後に次の単語に進む
   const handleMarkWord = (isRemembered: boolean) => {
     if (!currentWord) return;
+
+    // 回転数を1増やすことで、合計360度回転させる
+    setRotationCount(prevCount => prevCount + 1);
 
     recordProgressMutation.mutate({
       wordId: currentWord.id,
       isRemembered,
     });
 
-    markWord(isRemembered);
-    setIsFlipped(false);
+    setTimeout(() => {
+      markWord(isRemembered);
+    }, 300);
   };
 
   const handleSkip = () => {
     nextWord();
-    setIsFlipped(false);
+    // スキップ時も回転数をリセット
+    setRotationCount(0);
   };
 
   const handleEarlyFinish = () => {
     if (!hasCompleted) {
       setHasCompleted(true);
       const isReviewSession = session.id.startsWith('review-');
-      
+
       // 途中終了時のセッションデータを作成
       const completedSessionData = {
         ...session,
@@ -121,7 +129,7 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
         totalWords: currentWordIndex, // 実際に答えた問題数を設定
         isCompleted: true
       };
-      
+
       if (isReviewSession) {
         queryClient.invalidateQueries({ queryKey: ["/api/vocabulary/review"] });
         onComplete(completedSessionData);
@@ -210,7 +218,8 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
         <div className="max-w-md mx-auto">
           <VocabularyCard
             word={currentWord}
-            isFlipped={isFlipped}
+            // rotationCount を渡す
+            rotationCount={rotationCount} 
             onFlip={handleFlip}
           />
 
@@ -220,7 +229,8 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
               variant="destructive"
               size="lg"
               onClick={() => handleMarkWord(false)}
-              disabled={!isFlipped}
+              // 修正後の disabled プロパティ
+              disabled={rotationCount % 2 === 0}
               data-testid="button-not-remembered"
             >
               <i className="fas fa-times mr-2"></i>
@@ -230,7 +240,8 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
               variant="default"
               size="lg"
               onClick={() => handleMarkWord(true)}
-              disabled={!isFlipped}
+              // 修正後の disabled プロパティ
+              disabled={rotationCount % 2 === 0}
               className="bg-success hover:bg-success/90 text-success-foreground"
               data-testid="button-remembered"
             >
@@ -250,7 +261,7 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
               <i className="fas fa-forward mr-1"></i>
               スキップ
             </Button>
-            
+
             <Button
               variant="outline"
               size="sm"
@@ -263,7 +274,8 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
             </Button>
           </div>
 
-          {!isFlipped && (
+          {/* 回転の状態に応じてヒントを表示 */}
+          {rotationCount % 2 === 0 && (
             <p className="text-center text-sm text-muted-foreground mt-4">
               カードをタップして意味を表示
             </p>

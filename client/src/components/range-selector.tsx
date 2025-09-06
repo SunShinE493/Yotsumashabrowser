@@ -10,12 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import type { StudyConfig, StudySession } from "@shared/schema";
 
+// 親コンポーネントから、選択されたJSONファイルの情報をオブジェクトとして受け取るように変更
 interface RangeSelectorProps {
-  totalWords: number;
+  selectedJson: {
+    name: string;
+    wordCount: number;
+  } | null;
   onStartSession: (session: StudySession) => void;
 }
 
-export function RangeSelector({ totalWords, onStartSession }: RangeSelectorProps) {
+export function RangeSelector({ selectedJson, onStartSession }: RangeSelectorProps) {
+  // totalWords の代わりに selectedJson.wordCount を使用
+  const totalWords = selectedJson?.wordCount || 0;
   const [startRange, setStartRange] = useState(1);
   const [endRange, setEndRange] = useState(Math.min(50, totalWords));
   const [questionCount, setQuestionCount] = useState(50);
@@ -41,10 +47,11 @@ export function RangeSelector({ totalWords, onStartSession }: RangeSelectorProps
   });
 
   const handleStartStudy = () => {
-    if (totalWords === 0) {
+    // selectedJson が null の場合はエラー
+    if (!selectedJson) {
       toast({
-        title: "単語データなし",
-        description: "先にJSONファイルをアップロードしてください",
+        title: "データなし",
+        description: "学習を開始するJSONファイルを選択してください",
         variant: "destructive",
       });
       return;
@@ -93,7 +100,7 @@ export function RangeSelector({ totalWords, onStartSession }: RangeSelectorProps
             />
           </div>
         </div>
-        
+
         <div className="grid md:grid-cols-3 gap-4">
           {/* Range Inputs */}
           <div className="space-y-3">
@@ -105,6 +112,7 @@ export function RangeSelector({ totalWords, onStartSession }: RangeSelectorProps
                 id="start-range"
                 type="number"
                 min="1"
+                // totalWords を動的に設定
                 max={totalWords}
                 value={startRange}
                 onChange={(e) => setStartRange(parseInt(e.target.value) || 1)}
@@ -119,6 +127,7 @@ export function RangeSelector({ totalWords, onStartSession }: RangeSelectorProps
                 id="end-range"
                 type="number"
                 min="1"
+                // totalWords を動的に設定
                 max={totalWords}
                 value={endRange}
                 onChange={(e) => setEndRange(parseInt(e.target.value) || 1)}
@@ -126,7 +135,7 @@ export function RangeSelector({ totalWords, onStartSession }: RangeSelectorProps
               />
             </div>
           </div>
-          
+
           {/* Quick Presets */}
           <div className="space-y-2">
             <p className="text-sm font-medium text-foreground mb-2">クイック設定</p>
@@ -134,7 +143,7 @@ export function RangeSelector({ totalWords, onStartSession }: RangeSelectorProps
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => setPresetRange(1, 100)}
+                onClick={() => setPresetRange(1, Math.min(100, totalWords))}
                 data-testid="button-preset-1-100"
               >
                 1-100
@@ -142,7 +151,7 @@ export function RangeSelector({ totalWords, onStartSession }: RangeSelectorProps
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => setPresetRange(101, 200)}
+                onClick={() => setPresetRange(101, Math.min(200, totalWords))}
                 data-testid="button-preset-101-200"
               >
                 101-200
@@ -150,7 +159,7 @@ export function RangeSelector({ totalWords, onStartSession }: RangeSelectorProps
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={() => setPresetRange(201, 300)}
+                onClick={() => setPresetRange(201, Math.min(300, totalWords))}
                 data-testid="button-preset-201-300"
               >
                 201-300
@@ -165,7 +174,7 @@ export function RangeSelector({ totalWords, onStartSession }: RangeSelectorProps
               </Button>
             </div>
           </div>
-          
+
           {/* Study Options */}
           <div className="space-y-3">
             <div>
@@ -202,12 +211,12 @@ export function RangeSelector({ totalWords, onStartSession }: RangeSelectorProps
             </div>
           </div>
         </div>
-        
+
         {/* Start Study Button */}
         <div className="mt-6 flex justify-center">
           <Button
             onClick={handleStartStudy}
-            disabled={createSessionMutation.isPending || totalWords === 0}
+            disabled={createSessionMutation.isPending || !selectedJson}
             size="lg"
             data-testid="button-start-study"
           >
@@ -219,10 +228,10 @@ export function RangeSelector({ totalWords, onStartSession }: RangeSelectorProps
             学習を開始
           </Button>
         </div>
-        
-        {totalWords === 0 && (
+
+        {!selectedJson && (
           <p className="text-center text-sm text-muted-foreground mt-2">
-            単語データがありません。先にJSONファイルをアップロードしてください。
+            学習を開始するJSONファイルを選択してください。
           </p>
         )}
       </CardContent>

@@ -1,5 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* FontAwesome Icons */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -123,10 +126,11 @@
   transform-style: preserve-3d;
   transition: transform 0.3s ease-in-out;
 }
-
+/*
 .card-flip.flipped {
   transform: rotateY(180deg);
 }
+*/
 
 .card-front, .card-back {
   backface-visibility: hidden;
@@ -164,6 +168,3 @@
   min-height: 44px;
   min-width: 44px;
 }
-
-/* FontAwesome Icons */
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');

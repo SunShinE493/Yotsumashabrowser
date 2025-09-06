@@ -3,18 +3,23 @@ import type { VocabularyWord } from "@shared/schema";
 
 interface VocabularyCardProps {
   word: VocabularyWord;
-  isFlipped: boolean;
+  // isFlipped の代わりに rotationCount を受け取る
+  rotationCount: number;
   onFlip: () => void;
 }
 
-export function VocabularyCard({ word, isFlipped, onFlip }: VocabularyCardProps) {
+export function VocabularyCard({ word, rotationCount, onFlip }: VocabularyCardProps) {
   return (
     <div 
       className="relative h-64 cursor-pointer touch-target"
       onClick={onFlip}
       data-testid="card-vocabulary"
     >
-      <div className={`card-flip relative w-full h-full ${isFlipped ? 'flipped' : ''}`}>
+      {/* card-flip に style プロパティで回転角度を直接適用 */}
+      <div 
+        className="card-flip relative w-full h-full"
+        style={{ transform: `rotateY(${rotationCount * 180}deg)` }}
+      >
         {/* Front of Card (Word) */}
         <div className="card-front bg-gradient-to-br from-primary to-primary/80 rounded-xl shadow-lg p-8 flex flex-col items-center justify-center text-center">
           <div className="space-y-4">
