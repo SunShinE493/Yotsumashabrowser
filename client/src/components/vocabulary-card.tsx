@@ -6,9 +6,10 @@ interface VocabularyCardProps {
   // isFlipped の代わりに rotationCount を受け取る
   rotationCount: number;
   onFlip: () => void;
+  fontSizeClass: string;
 }
 
-export function VocabularyCard({ word, rotationCount, onFlip }: VocabularyCardProps) {
+export function VocabularyCard({ word, rotationCount, onFlip, fontSizeClass }: VocabularyCardProps) {
   return (
     <div 
       className="relative h-64 cursor-pointer touch-target"
@@ -24,8 +25,8 @@ export function VocabularyCard({ word, rotationCount, onFlip }: VocabularyCardPr
         <div className="card-front bg-gradient-to-br from-primary to-primary/80 rounded-xl shadow-lg p-8 flex flex-col items-center justify-center text-center">
           <div className="space-y-4">
             <div className="text-sm text-primary-foreground/80 font-medium">単語</div>
-            <div className="text-3xl font-bold text-primary-foreground" data-testid="text-word">
-              {word.word}
+            <div className={`${fontSizeClass} font-bold text-primary-foreground`} data-testid="text-word">
+                {word.word}
             </div>
             {word.category && (
               <div className="text-sm text-primary-foreground/80" data-testid="text-category">

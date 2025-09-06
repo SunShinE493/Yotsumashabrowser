@@ -8,6 +8,10 @@ import { VocabularyCard } from "./vocabulary-card";
 import { useStudySession } from "@/hooks/use-study-session";
 import type { StudySession as StudySessionType, VocabularyWord } from "@shared/schema";
 
+const [fontSizeClass, setFontSizeClass] = useState('text-3xl');
+
+
+
 interface StudySessionProps {
   session: StudySessionType;
   onComplete: (sessionData?: StudySessionType) => void;
@@ -221,6 +225,7 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
             // rotationCount を渡す
             rotationCount={rotationCount} 
             onFlip={handleFlip}
+            fontSizeClass={fontSizeClass}
           />
 
           {/* Action Buttons */}
@@ -274,6 +279,30 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
             </Button>
           </div>
 
+          {/* 新しく追加したフォントサイズ変更ボタン */}
+          <div className="mt-4 flex items-center justify-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFontSizeClass('text-2xl')}
+            >
+              -A
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFontSizeClass('text-3xl')}
+            >
+              A
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setFontSizeClass('text-4xl')}
+            >
+              +A
+            </Button>
+          </div>
           {/* 回転の状態に応じてヒントを表示 */}
           {rotationCount % 2 === 0 && (
             <p className="text-center text-sm text-muted-foreground mt-4">
