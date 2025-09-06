@@ -10,12 +10,13 @@ import type { StudySession as StudySessionType, VocabularyWord } from "@shared/s
 
 interface StudySessionProps {
   session: StudySessionType;
-  onComplete: (sessionId: string) => void;
+  onComplete: (sessionData?: StudySessionType) => void;
   onBack: () => void;
 }
 
 export function StudySession({ session, onComplete, onBack }: StudySessionProps) {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [hasCompleted, setHasCompleted] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -50,20 +51,22 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
   });
 
   useEffect(() => {
-    if (isComplete) {
+    if (isComplete && !hasCompleted) {
+      setHasCompleted(true);
       const isReviewSession = session.id.startsWith('review-');
+      
+      // 完了時のセッションデータを作成
+      const completedSessionData = {
+        ...session,
+        correctCount,
+        incorrectCount,
+        isCompleted: true
+      };
       
       if (isReviewSession) {
         // 復習セッションの場合、サーバー更新をスキップして直接完了処理
         queryClient.invalidateQueries({ queryKey: ["/api/vocabulary/review"] });
-        // 復習セッション用の仮想的な完了データを作成
-        const completedReviewSession = {
-          ...session,
-          correctCount,
-          incorrectCount,
-          isCompleted: true
-        };
-        onComplete(session.id);
+        onComplete(completedSessionData);
       } else {
         // 通常セッションの場合、サーバーを更新
         updateSessionMutation.mutate({
@@ -73,12 +76,16 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
         }, {
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["/api/vocabulary/review"] });
-            onComplete(session.id);
+            onComplete();
+          },
+          onError: () => {
+            // エラーの場合でも完了処理を実行
+            onComplete(completedSessionData);
           }
         });
       }
     }
-  }, [isComplete, correctCount, incorrectCount, session, queryClient, onComplete, updateSessionMutation]);
+  }, [isComplete, hasCompleted]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);

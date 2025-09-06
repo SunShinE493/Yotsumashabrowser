@@ -29,24 +29,25 @@ export default function Home() {
     setShowResults(false);
   };
 
-  const handleSessionComplete = async (sessionId: string) => {
+  const handleSessionComplete = async (sessionData?: StudySessionType) => {
     try {
-      const isReviewSession = sessionId.startsWith('review-');
-      
-      if (isReviewSession) {
-        // 復習セッションの場合、currentSessionの状態を使用
-        setCompletedSession(currentSession);
+      if (sessionData) {
+        // セッションデータが直接渡された場合（復習セッションなど）
+        setCompletedSession(sessionData);
         setShowResults(true);
-      } else {
+      } else if (currentSession) {
         // 通常セッションの場合、サーバーから最新データを取得
-        const response = await fetch(`/api/study/session/${sessionId}`);
-        const updatedSession = await response.json();
-        setCompletedSession(updatedSession);
+        const response = await fetch(`/api/study/session/${currentSession.id}`);
+        if (response.ok) {
+          const updatedSession = await response.json();
+          setCompletedSession(updatedSession);
+        } else {
+          setCompletedSession(currentSession);
+        }
         setShowResults(true);
       }
     } catch (error) {
       console.error('Failed to fetch completed session:', error);
-      // エラーの場合でも結果画面を表示
       setCompletedSession(currentSession);
       setShowResults(true);
     }
