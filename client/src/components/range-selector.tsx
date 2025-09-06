@@ -1,3 +1,5 @@
+// range-selector.tsx
+
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -10,21 +12,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import type { StudyConfig, StudySession } from "@shared/schema";
 
-// 親コンポーネントから、選択されたJSONファイルの情報をオブジェクトとして受け取るように変更
+// 修正後: presetsプロパティを追加
 interface RangeSelectorProps {
   selectedJson: {
     name: string;
     wordCount: number;
+    presets: { start: number; end: number; label: string }[];
   } | null;
   onStartSession: (session: StudySession) => void;
 }
 
 export function RangeSelector({ selectedJson, onStartSession }: RangeSelectorProps) {
-  // totalWords の代わりに selectedJson.wordCount を使用
   const totalWords = selectedJson?.wordCount || 0;
-  const [startRange, setStartRange] = useState(1);
-  const [endRange, setEndRange] = useState(Math.min(50, totalWords));
-  const [questionCount, setQuestionCount] = useState(50);
+  // 修正: 初期値を空文字列に変更
+  const [endRange, setEndRange] = useState<number | string>(Math.min(50, totalWords));
+  const [startRange, setStartRange] = useState<number | string>(Math.min(50, totalWords));
+  const [questionCount, setQuestionCount] = useState(totalWords);
   const [order, setOrder] = useState<"sequential" | "random" | "difficulty">("random");
   const [reviewOnly, setReviewOnly] = useState(false);
   const { toast } = useToast();
@@ -47,7 +50,6 @@ export function RangeSelector({ selectedJson, onStartSession }: RangeSelectorPro
   });
 
   const handleStartStudy = () => {
-    // selectedJson が null の場合はエラー
     if (!selectedJson) {
       toast({
         title: "データなし",
@@ -111,11 +113,13 @@ export function RangeSelector({ selectedJson, onStartSession }: RangeSelectorPro
               <Input
                 id="start-range"
                 type="number"
-                min="1"
-                // totalWords を動的に設定
                 max={totalWords}
                 value={startRange}
-                onChange={(e) => setStartRange(parseInt(e.target.value) || 1)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // 修正: 入力値が空の場合は空文字列に設定
+                  setStartRange(value === '' ? '' : parseInt(value));
+                }}
                 data-testid="input-start-range"
               />
             </div>
@@ -127,10 +131,13 @@ export function RangeSelector({ selectedJson, onStartSession }: RangeSelectorPro
                 id="end-range"
                 type="number"
                 min="1"
-                // totalWords を動的に設定
-                max={totalWords}
+                max={totalWords} // valueはそのまま endRange を使用
                 value={endRange}
-                onChange={(e) => setEndRange(parseInt(e.target.value) || 1)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // 修正: 入力値が空の場合は空文字列に設定
+                  setEndRange(value === '' ? '' : parseInt(value));
+                }}
                 data-testid="input-end-range"
               />
             </div>
@@ -140,30 +147,22 @@ export function RangeSelector({ selectedJson, onStartSession }: RangeSelectorPro
           <div className="space-y-2">
             <p className="text-sm font-medium text-foreground mb-2">クイック設定</p>
             <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setPresetRange(1, Math.min(100, totalWords))}
-                data-testid="button-preset-1-100"
-              >
-                1-100
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setPresetRange(101, Math.min(200, totalWords))}
-                data-testid="button-preset-101-200"
-              >
-                101-200
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setPresetRange(201, Math.min(300, totalWords))}
-                data-testid="button-preset-201-300"
-              >
-                201-300
-              </Button>
+              {/* 修正箇所：動的にプリセットボタンを生成 */}
+              {selectedJson?.presets.length > 0 ? (
+                selectedJson.presets.map((preset, index) => (
+                  <Button
+                    key={index}
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setPresetRange(preset.start, preset.end)}
+                    data-testid={`button-preset-${preset.label}`}
+                  >
+                    {preset.label}
+                  </Button>
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground">このファイルにはプリセットがありません</p>
+              )}
               <Button
                 variant="secondary"
                 size="sm"

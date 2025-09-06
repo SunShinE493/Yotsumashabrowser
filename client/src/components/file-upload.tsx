@@ -39,8 +39,6 @@ const FILE_PRESETS = {
   "rinri.json": {
   presets: [
   { start: 1, end: 73, label: "倫理Ⅰ1-73" },
-  { start: 74, end: 221, label: "公共Ⅲ158-262" },
-  { start: 263, end: 471, label: "公共Ⅳ263－471" },
   ],
   },
   "seikei.json":{

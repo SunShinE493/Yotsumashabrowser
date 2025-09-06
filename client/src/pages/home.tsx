@@ -1,117 +1,112 @@
+// home.tsx
+
 import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { FileUpload, SelectedJsonInfo } from "@/components/file-upload";
 import { RangeSelector } from "@/components/range-selector";
 import { StudySession } from "@/components/study-session";
 import { StudyResults } from "@/components/study-results";
 import { ReviewWords } from "@/components/review-words";
-import { useQuery } from "@tanstack/react-query";
-import type { VocabularyWord, StudySession as StudySessionType } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import type { StudyConfig, StudySession as StudySessionType, VocabularyWord } from "@shared/schema";
 import iconSvg from './1f974.svg';
-
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
-  // 🔽 新しい状態変数 selectedJson を追加
   const [selectedJson, setSelectedJson] = useState<SelectedJsonInfo | null>(null);
-
   const [currentSession, setCurrentSession] = useState<StudySessionType | null>(null);
-  const [showResults, setShowResults] = useState(false);
   const [completedSession, setCompletedSession] = useState<StudySessionType | null>(null);
+  const { toast } = useToast();
 
-  const { data: vocabularyWords = [], refetch: refetchVocabulary } = useQuery<VocabularyWord[]>({
-    queryKey: ["/api/vocabulary"],
-  });
-
-  const { data: reviewWords = [] } = useQuery({
+  const { data: reviewWords = [] } = useQuery<VocabularyWord[]>({
     queryKey: ["/api/vocabulary/review"],
   });
 
-  // 🔽 onUploadSuccess ハンドラを修正
+  const quickStartMutation = useMutation({
+    mutationFn: async (config: StudyConfig) => {
+      const response = await apiRequest("POST", "/api/study/session", config);
+      return response.json();
+    },
+    onSuccess: (session) => {
+      setCurrentSession(session);
+      setCompletedSession(null);
+    },
+    onError: () => {
+      toast({
+        title: "クイック学習開始エラー",
+        description: "セッションの作成に失敗しました。",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleUploadSuccess = (fileInfo: SelectedJsonInfo) => {
-    // FileUploadから受け取った情報を selectedJson の状態にセットする
     setSelectedJson(fileInfo);
-    refetchVocabulary();
+    // ファイルアップロード成功時に vocabularyWords の状態を更新
+    // ここでは refetchVocabulary() は不要
   };
 
   const handleStartSession = (session: StudySessionType) => {
     setCurrentSession(session);
-    setShowResults(false);
+    setCompletedSession(null);
   };
 
-  const handleSessionComplete = async (sessionData?: StudySessionType) => {
-    try {
-      if (sessionData) {
-        setCompletedSession(sessionData);
-        setShowResults(true);
-      } else if (currentSession) {
-        const response = await fetch(`/api/study/session/${currentSession.id}`);
-        if (response.ok) {
-          const updatedSession = await response.json();
-          setCompletedSession(updatedSession);
-        } else {
-          setCompletedSession(currentSession);
-        }
-        setShowResults(true);
-      }
-    } catch (error) {
-      console.error('Failed to fetch completed session:', error);
-      setCompletedSession(currentSession);
-      setShowResults(true);
-    }
+  const handleSessionComplete = (sessionData?: StudySessionType) => {
+    setCompletedSession(sessionData || currentSession);
+    setCurrentSession(null);
   };
 
   const handleNewSession = () => {
     setCurrentSession(null);
     setCompletedSession(null);
-    setShowResults(false);
   };
 
   const handleStartReview = () => {
-    if (reviewWords.length > 0) {
-      const reviewSession: StudySessionType = {
-        id: `review-${Date.now()}`,
+    if (reviewWords.length === 0) {
+      toast({
+        title: "復習単語なし",
+        description: "現在、復習すべき単語はありません。",
+      });
+      return;
+    }
+    const reviewSession: StudySessionType = {
+      id: `review-${Date.now()}`,
+      config: {
         startRange: 1,
         endRange: reviewWords.length,
-        totalWords: reviewWords.length,
-        correctCount: 0,
-        incorrectCount: 0,
-        isCompleted: false,
-        createdAt: new Date(),
-      };
-      setCurrentSession(reviewSession);
-      setShowResults(false);
-    }
+        questionCount: reviewWords.length,
+        order: "random",
+        reviewOnly: true,
+      },
+      words: reviewWords,
+      correctCount: 0,
+      incorrectCount: 0,
+      isCompleted: false,
+      startTime: new Date(),
+      endTime: null,
+    };
+    handleStartSession(reviewSession);
   };
 
-  const handleQuickStart = async () => {
-    if (vocabularyWords.length === 0) {
+  const handleQuickStart = () => {
+    if (!selectedJson || selectedJson.wordCount === 0) {
+      toast({
+        title: "データなし",
+        description: "学習を開始するJSONファイルを選択してください。",
+        variant: "destructive",
+      });
       return;
     }
 
-    try {
-      const endRange = Math.min(20, vocabularyWords.length);
-      const config = {
-        startRange: 1,
-        endRange,
-        questionCount: endRange,
-        order: "random" as const,
-        reviewOnly: false,
-      };
-
-      const response = await fetch("/api/study/session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(config),
-      });
-
-      if (response.ok) {
-        const session = await response.json();
-        handleStartSession(session);
-      }
-    } catch (error) {
-      console.error('Failed to start quick session:', error);
-    }
+    const endRange = Math.min(20, selectedJson.wordCount);
+    const config: StudyConfig = {
+      startRange: 1,
+      endRange,
+      questionCount: endRange,
+      order: "random",
+      reviewOnly: false,
+    };
+    quickStartMutation.mutate(config);
   };
 
   return (
@@ -121,12 +116,12 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-                <div className="w-10 h-10  rounded-full flex items-center justify-center">
-                  <img 
-                    src={iconSvg} 
-                    alt="App Logo"
-                    className="w-full h-full object-cover rounded-full"
-                  />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+                <img
+                  src={iconSvg}
+                  alt="App Logo"
+                  className="w-full h-full object-cover rounded-lg"
+                />
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-foreground">よつましゃアプリブラウザ版</h1>
@@ -134,7 +129,7 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button 
+              <button
                 className="touch-target p-2 rounded-lg bg-secondary hover:bg-accent transition-colors"
                 data-testid="button-settings"
               >
@@ -143,7 +138,7 @@ export default function Home() {
               <div className="hidden sm:flex items-center space-x-2 bg-muted px-3 py-2 rounded-lg">
                 <i className="fas fa-chart-line text-primary text-sm"></i>
                 <span className="text-sm font-medium text-foreground" data-testid="text-progress">
-                  {vocabularyWords.length > 0 ? `${vocabularyWords.length}語` : "0語"}
+                  {selectedJson ? `${selectedJson.wordCount}語` : "0語"}
                 </span>
               </div>
             </div>
@@ -151,59 +146,55 @@ export default function Home() {
         </div>
       </header>
 
+      {/* --- */}
+
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-
-        {/* Show study session if active */}
-        {currentSession && !showResults && (
-          <StudySession 
+        {currentSession ? (
+          <StudySession
             session={currentSession}
             onComplete={handleSessionComplete}
             onBack={handleNewSession}
           />
-        )}
-
-        {/* Show results if session completed */}
-        {showResults && (completedSession || currentSession) && (
+        ) : completedSession ? (
           <StudyResults
-            session={completedSession || currentSession!}
+            session={completedSession}
             onNewSession={handleNewSession}
             onReview={handleStartReview}
           />
-        )}
-
-        {/* Show setup if no active session */}
-        {!currentSession && (
+        ) : (
           <>
             <FileUpload onUploadSuccess={handleUploadSuccess} />
-
-            <RangeSelector 
-              // 🔽 修正: selectedJson を渡す
+            <RangeSelector
               selectedJson={selectedJson}
-              totalWords={vocabularyWords.length}
               onStartSession={handleStartSession}
             />
-
-            <ReviewWords 
-              reviewWords={reviewWords} 
+            <ReviewWords
+              reviewWords={reviewWords}
               onStartReview={handleStartReview}
             />
           </>
         )}
-
       </main>
 
+      {/* --- */}
+
       {/* Floating Action Button */}
-      {!currentSession && vocabularyWords.length > 0 && (
+      {selectedJson && selectedJson.wordCount > 0 && !currentSession && !completedSession && (
         <div className="fixed bottom-6 right-6">
-          <button 
+          <button
             onClick={handleQuickStart}
-            className="w-14 h-14 bg-500 text-black rounded-full shadow-lg hover:bg-primary/90 transition-all hover:scale-105 flex items-center justify-center group"
+            disabled={quickStartMutation.isPending}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg shadow-lg hover:bg-primary/90 transition-all hover:scale-105 flex items-center gap-2 group"
             data-testid="button-quick-start"
             title="クイック学習開始（最初の20語をランダムで学習）"
           >
-            <i className="fas fa-play text-xl group-hover:scale-110 transition-transform"></i>
-            <span className="font-mono">Quick<br/>Start</span>
+            {quickStartMutation.isPending ? (
+              <i className="fas fa-spinner fa-spin text-xl"></i>
+            ) : (
+              <i className="fas fa-play text-xl group-hover:scale-110 transition-transform"></i>
+            )}
+            <span className="font-mono">ランダム20問<br />開始</span>
           </button>
         </div>
       )}
