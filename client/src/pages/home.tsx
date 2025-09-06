@@ -31,13 +31,23 @@ export default function Home() {
 
   const handleSessionComplete = async (sessionId: string) => {
     try {
-      // セッション完了後に最新のセッションデータを取得
-      const response = await fetch(`/api/study/session/${sessionId}`);
-      const updatedSession = await response.json();
-      setCompletedSession(updatedSession);
-      setShowResults(true);
+      const isReviewSession = sessionId.startsWith('review-');
+      
+      if (isReviewSession) {
+        // 復習セッションの場合、currentSessionの状態を使用
+        setCompletedSession(currentSession);
+        setShowResults(true);
+      } else {
+        // 通常セッションの場合、サーバーから最新データを取得
+        const response = await fetch(`/api/study/session/${sessionId}`);
+        const updatedSession = await response.json();
+        setCompletedSession(updatedSession);
+        setShowResults(true);
+      }
     } catch (error) {
       console.error('Failed to fetch completed session:', error);
+      // エラーの場合でも結果画面を表示
+      setCompletedSession(currentSession);
       setShowResults(true);
     }
   };

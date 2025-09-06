@@ -51,18 +51,34 @@ export function StudySession({ session, onComplete, onBack }: StudySessionProps)
 
   useEffect(() => {
     if (isComplete) {
-      updateSessionMutation.mutate({
-        correctCount,
-        incorrectCount,
-        isCompleted: true,
-      }, {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ["/api/vocabulary/review"] });
-          onComplete(session.id);
-        }
-      });
+      const isReviewSession = session.id.startsWith('review-');
+      
+      if (isReviewSession) {
+        // 復習セッションの場合、サーバー更新をスキップして直接完了処理
+        queryClient.invalidateQueries({ queryKey: ["/api/vocabulary/review"] });
+        // 復習セッション用の仮想的な完了データを作成
+        const completedReviewSession = {
+          ...session,
+          correctCount,
+          incorrectCount,
+          isCompleted: true
+        };
+        onComplete(session.id);
+      } else {
+        // 通常セッションの場合、サーバーを更新
+        updateSessionMutation.mutate({
+          correctCount,
+          incorrectCount,
+          isCompleted: true,
+        }, {
+          onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["/api/vocabulary/review"] });
+            onComplete(session.id);
+          }
+        });
+      }
     }
-  }, [isComplete, correctCount, incorrectCount]);
+  }, [isComplete, correctCount, incorrectCount, session, queryClient, onComplete, updateSessionMutation]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
