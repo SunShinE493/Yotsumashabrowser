@@ -84,7 +84,7 @@ export function StudyResults({ session, onNewSession, onReview }: StudyResultsPr
               data-testid="button-new-session"
             >
               <i className="fas fa-play mr-2"></i>
-              新しいセッション
+              ホームに戻る
             </Button>
           </div>
         </div>

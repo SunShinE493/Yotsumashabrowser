@@ -1,6 +1,6 @@
 // range-selector.tsx
 
-import { useState } from "react";
+import { useState ,useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -26,12 +26,32 @@ export function RangeSelector({ selectedJson, onStartSession }: RangeSelectorPro
   const totalWords = selectedJson?.wordCount || 0;
   // 修正: 初期値を空文字列に変更
   const [endRange, setEndRange] = useState<number | string>(Math.min(50, totalWords));
-  const [startRange, setStartRange] = useState<number | string>(Math.min(50, totalWords));
-  const [questionCount, setQuestionCount] = useState(totalWords);
+  const [startRange, setStartRange] = useState<number | string>(1);
+  const [questionCount, setQuestionCount] = useState((Math.min(50, totalWords)));
   const [order, setOrder] = useState<"sequential" | "random" | "difficulty">("random");
   const [reviewOnly, setReviewOnly] = useState(false);
   const { toast } = useToast();
 
+
+
+  
+  useEffect(() => {
+    if (selectedJson && selectedJson.wordCount > 0) {
+      // selectedJson が有効な値になったときに範囲を更新
+      setStartRange(1);
+      setEndRange(Math.min(50, selectedJson.wordCount));
+      setQuestionCount(-1);
+    }
+  }, [selectedJson]); // selectedJson が変更されたときにこの effect を実行
+
+
+
+
+
+
+
+
+  
   const createSessionMutation = useMutation({
     mutationFn: async (config: StudyConfig) => {
       const response = await apiRequest("POST", "/api/study/session", config);

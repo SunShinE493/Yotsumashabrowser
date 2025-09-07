@@ -33,7 +33,7 @@ const FILE_PRESETS = {
   },
   "koumin2.json": {
     presets: [
-      { start: 1, end: 201, label: "公共Ⅴ1-201" },
+      { start: 1, end: 202, label: "公共Ⅴ1-202" },
     ],
   },
   "rinri.json": {
